@@ -1,0 +1,73 @@
+# Função para determinar a arquitetura do sistema
+function Get-SystemArchitecture {
+    if ([Environment]::Is64BitOperatingSystem) {
+        return "64"
+    } else {
+        return "32"
+    }
+}
+
+# Função para baixar e instalar o OpenVPN
+function Install-OpenVPN {
+    param (
+        [string]$installerUrl,
+        [string]$installerPath
+    )
+
+    Write-Host "Baixando OpenVPN..."
+    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+
+    Write-Host "Instalando OpenVPN..."
+    Start-Process msiexec.exe -ArgumentList "/i `"$installerPath`" /quiet /norestart" -Wait
+
+    # Verificar se OpenVPN está instalado
+    if (-Not (Get-Command "C:\Program Files\OpenVPN\bin\openvpn.exe" -ErrorAction SilentlyContinue)) {
+        Write-Host "A instalação do OpenVPN falhou. Por favor, verifique a instalação manualmente."
+        exit
+    }
+
+    Write-Host "OpenVPN instalado com sucesso!"
+}
+
+# Baixar e instalar OpenVPN baseado na arquitetura
+$architecture = Get-SystemArchitecture
+if ($architecture -eq "64") {
+    $installerUrl = "https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.13-I002-amd64.msi"
+} else {
+    $installerUrl = "https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.13-I002-x86.msi"
+}
+
+$installerPath = "$env:TEMP\OpenVPNInstaller.msi"
+
+# Chamar a função de instalação do OpenVPN
+Install-OpenVPN -installerUrl $installerUrl -installerPath $installerPath
+
+# Instalar Python se não estiver já instalado
+if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
+    Write-Host "Python não encontrado. Por favor, instale o Python 3 antes de continuar."
+    exit
+}
+
+# Instalar PIP se não estiver já instalado
+if (-Not (Get-Command pip -ErrorAction SilentlyContinue)) {
+    Write-Host "PIP não encontrado. Instalando..."
+    python -m ensurepip
+}
+
+# Atualizar PIP
+Write-Host "Atualizando PIP..."
+pip install --upgrade pip
+
+# Instalar dependências
+$dependencies = @(
+    "speedtest-cli",
+    "Pillow",
+    "pystray"
+)
+
+foreach ($package in $dependencies) {
+    Write-Host "Instalando $package..."
+    pip install $package
+}
+
+Write-Host "Todas as dependências foram instaladas com sucesso!"
