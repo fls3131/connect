@@ -1,14 +1,14 @@
 import tkinter as tk
-from tkinter import messagebox, filedialog, Menu
+from tkinter import messagebox, filedialog, Menu, ttk
 import subprocess
 import os
 import threading
+import speedtest
 import time
 from PIL import Image, ImageDraw
 import pystray
 from pystray import MenuItem, Icon
 import base64
-
 
 class OpenVPNClient:
     def __init__(self, root):
@@ -17,6 +17,9 @@ class OpenVPNClient:
         self.root.geometry("400x300")
         self.process = None
         self.is_vpn_connected = False
+
+        # Variables to hold internet status
+        self.internet_status = False
 
         # Load the last .ovpn file path
         self.ovpn_file_path = self.load_last_config()
@@ -131,6 +134,10 @@ class OpenVPNClient:
         self.exit_button.config(state=tk.NORMAL)  # Enable exit button
         messagebox.showinfo("Disconnected", "You have been disconnected from the VPN.")
 
+    def open_speed_test_window(self):
+        speed_test_window = tk.Toplevel(self.root)
+        speed_test_app = SpeedTestApp(speed_test_window)
+
     def run_net_script(self):
         try:
             subprocess.Popen(["python", "net.py"], shell=True)
@@ -196,6 +203,73 @@ class OpenVPNClient:
             self.icon.icon = self.create_image(color='green')  # Green when connected
         else:
             self.icon.icon = self.create_image(color='blue')  # Blue when disconnected
+
+
+# Speed test application
+class SpeedTestApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Internet Speed Test")
+
+        # Create a Frame
+        self.frame = tk.Frame(self.root)
+        self.frame.pack(pady=20)
+
+        # Create a label for instructions
+        self.label = tk.Label(self.frame, text="Click the button to test internet speed.")
+        self.label.pack(pady=10)
+
+        # Create a button to start speed test
+        self.start_button = tk.Button(self.frame, text="Start Speed Test", command=self.start_test)
+        self.start_button.pack(pady=10)
+
+        # Create a progress bar
+        self.progress = ttk.Progressbar(self.frame, orient="horizontal", mode="determinate", length=300)
+        self.progress.pack(pady=10)
+
+        # Create label for results
+        self.result_label = tk.Label(self.frame, text="")
+        self.result_label.pack(pady=10)
+
+    def start_test(self):
+        # Disable start button to prevent multiple clicks
+        self.start_button.config(state=tk.DISABLED)
+
+        # Start the progress bar
+        self.progress.config(mode="indeterminate")
+        self.progress.start()
+
+        # Run speed test in a separate thread
+        thread = threading.Thread(target=self.run_speed_test)
+        thread.start()
+
+    def run_speed_test(self):
+        # Create a Speedtest object
+        st = speedtest.Speedtest()
+
+        # Simulate download progress
+        for _ in range(10):  # Simulate 10 steps (10% for each iteration)
+            time.sleep(0.5)  # Simulate time for each part of the download
+            self.root.after(0, self.progress.step, 10)  # Update progress bar
+
+        # Perform actual download test
+        download_speed = st.download() / (10**6)  # Convert to Mbps
+
+        # Simulate upload progress
+        for _ in range(10):  # Simulate 10 steps (10% for each iteration)
+            time.sleep(0.5)  # Simulate time for each part of the upload
+            self.root.after(0, self.progress.step, 10)  # Update progress bar
+
+        # Perform actual upload test
+        upload_speed = st.upload() / (10**6)  # Convert to Mbps
+
+        # Stop the progress bar
+        self.progress.stop()
+
+        # Update result label and re-enable the button
+        self.result_label.config(text=f"Download Speed: {download_speed:.2f} Mbps\n"
+                                       f"Upload Speed: {upload_speed:.2f} Mbps")
+        self.start_button.config(state=tk.NORMAL)
 
 
 # Run the application
