@@ -18,14 +18,8 @@ class OpenVPNClient:
         self.process = None
         self.is_vpn_connected = False
 
-        # Variáveis para o estado da internet
+        # Variables to hold internet status
         self.internet_status = False
-
-        # Check for administrative privileges on Windows
-        if not self.check_admin():
-            messagebox.showerror("Permission Denied", "This application requires administrative privileges. Please run as an administrator.")
-            self.root.quit()
-            return
 
         # Load the last .ovpn file path
         self.ovpn_file_path = self.load_last_config()
@@ -76,16 +70,6 @@ class OpenVPNClient:
         menu_bar.add_cascade(label="Programs", menu=programs_menu)
 
         self.root.config(menu=menu_bar)
-
-    def check_admin(self):
-        """Check for administrative privileges on Windows."""
-        # This is a simplified way to check for admin privileges by attempting to create a temporary folder in a system location
-        try:
-            subprocess.run(["mkdir", "C:\\Windows\\Temp\\test_admin"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            subprocess.run(["rmdir", "C:\\Windows\\Temp\\test_admin"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return True
-        except Exception:
-            return False
 
     def load_last_config(self):
         try:
